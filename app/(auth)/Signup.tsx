@@ -4,6 +4,7 @@ import { useState } from "react";
 import { icons, images } from "@/constants";
 import CustomButton from "@/components/CustomButton";
 import { Link } from "expo-router";
+import OAuth from "@/components/OAuth";
 
 const Signup = () => {
 	const [form, setForm] = useState({
@@ -55,6 +56,7 @@ const Signup = () => {
 					/>
 
 					{/* oAuth */}
+					<OAuth />
 
 					<Link
 						href={"/Signin"}
@@ -64,6 +66,7 @@ const Signup = () => {
 						<Text className="text-primary-500">Log In</Text>
 					</Link>
 				</View>
+				{/* Verfication Modal */}
 			</View>
 		</ScrollView>
 	);
