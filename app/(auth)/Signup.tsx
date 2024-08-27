@@ -5,6 +5,7 @@ import { icons, images } from "@/constants";
 import CustomButton from "@/components/CustomButton";
 import { Link } from "expo-router";
 import OAuth from "@/components/OAuth";
+import { useSignUp } from "@clerk/clerk-expo";
 
 const Signup = () => {
 	const [form, setForm] = useState({
@@ -13,7 +14,66 @@ const Signup = () => {
 		password: "",
 	});
 
-	const onSignupPress = async () => {};
+	const [verification, setVerification] = useState({
+		state: "default",
+		error: "",
+		code: "",
+	});
+
+	const { isLoaded, signUp, setActive } = useSignUp();
+
+	const onSignUpPress = async () => {
+		if (!isLoaded) {
+			return;
+		}
+
+		try {
+			await signUp.create({
+				emailAddress: form.email,
+				password: form.password,
+			});
+
+			await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
+
+			setVerification({
+				...verification,
+				state: "pending",
+			});
+		} catch (err: any) {
+			console.error(JSON.stringify(err, null, 2));
+		}
+	};
+
+	const onPressVerify = async () => {
+		if (!isLoaded) return;
+
+		try {
+			const completeSignUp = await signUp.attemptEmailAddressVerification({
+				code: verification.code,
+			});
+
+			if (completeSignUp.status === "complete") {
+				// TODO: Create a database user
+				await setActive({ session: completeSignUp.createdSessionId });
+				setVerification({
+					...verification,
+					state: "success",
+				});
+			} else {
+				setVerification({
+					...verification,
+					state: "failed",
+					error: "Verification failed",
+				});
+			}
+		} catch (err: any) {
+			setVerification({
+				...verification,
+				state: "failed",
+				error: err.errors[0].longMessage,
+			});
+		}
+	};
 
 	return (
 		<ScrollView className="flex-1 bg-white">
@@ -21,7 +81,7 @@ const Signup = () => {
 				<View className="relative w-full h-[250px]">
 					<Image source={images.signUpCar} className="z-0 w-full h-[250px]" />
 					<Text className="text-2xl text-black font-JakartaSemiBold absolute bottom-5 left-5">
-						Create Your Account
+						, Create Your Account
 					</Text>
 				</View>
 				<View className="p-5">
@@ -52,7 +112,7 @@ const Signup = () => {
 					<CustomButton
 						title="Sign Up"
 						className="mt-6"
-						onPress={onSignupPress}
+						onPress={onSignUpPress}
 					/>
 
 					{/* oAuth */}
