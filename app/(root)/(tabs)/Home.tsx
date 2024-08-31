@@ -6,10 +6,15 @@ import {
 	TouchableOpacity,
 	View,
 } from "react-native";
+import { useState, useEffect } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
-import RideCard from "@/components/RideCard";
-import { icons, images } from "@/constants";
 import { useUser } from "@clerk/clerk-expo";
+import * as Location from "expo-location";
+import RideCard from "@/components/RideCard";
+import GoogleTextInput from "@/components/GoogleTextInput";
+import Map from "@/components/Map";
+import { icons, images } from "@/constants";
+import { useLocationStore } from "@/store";
 
 const recentRides = [
 	{
@@ -119,8 +124,39 @@ const recentRides = [
 ];
 
 export default function Page() {
+	const { setUserLocation, setDestinationLocation } = useLocationStore();
 	const { user } = useUser();
 	const loading = false;
+
+	const [hasPermission, setHasPermission] = useState(false);
+
+	const handleSignOut = () => {};
+
+	const handleDestinationPress = () => {};
+
+	useEffect(() => {
+		const requestLocation = async () => {
+			let { status } = await Location.requestForegroundPermissionsAsync();
+
+			if (status !== "granted") {
+				setHasPermission(false);
+			}
+
+			let location = await Location.getCurrentPositionAsync();
+			const address = await Location.reverseGeocodeAsync({
+				latitude: location.coords?.latitude!,
+				longitude: location.coords?.longitude!,
+			});
+
+			setUserLocation({
+				latitude: location.coords?.latitude!,
+				longitude: location.coords?.longitude!,
+				address: `${address[0].name}, ${address[0].region}`,
+			});
+		};
+
+		requestLocation();
+	}, []);
 
 	return (
 		<SafeAreaView className="bg-general-500">
@@ -152,14 +188,40 @@ export default function Page() {
 				ListHeaderComponent={() => (
 					<>
 						<View className="flex flex-row items-center justify-between my-5">
-							<Text className="text-xl font-JakartaExtraBold">
-								Welcome{" "}
-								{user?.firstName || user?.emailAddresses[0].emailAddress} 👋🏻
-							</Text>
-							<TouchableOpacity>
+							<View className="flex flex-col items-start">
+								<Text className="text-2xl font-JakartaExtraBold">Welcome!</Text>
+								<Text className="text-2xl capitalize font-JakartaExtraBold">
+									{user?.firstName ||
+										user?.emailAddresses[0].emailAddress.split("@")[0]}{" "}
+								</Text>
+							</View>
+							<TouchableOpacity
+								onPress={handleSignOut}
+								className="justify-center items-center w-10 h-10 rounded-full bg-white"
+							>
 								<Image source={icons.out} className="w-6 h-6" />
 							</TouchableOpacity>
 						</View>
+
+						{/* GoogleTextInput */}
+						<GoogleTextInput
+							icon={icons.search}
+							initialLocation="Kathmandu, Nepal"
+							containerStyle="bg-white shadow-md shadow-neutral-300"
+							textInputBackgroundColor="transparent"
+							handlePress={handleDestinationPress}
+						/>
+						<>
+							<Text className="text-xl font-JakartaBold mt-5 mb-3">
+								Your Current Location
+							</Text>
+							<View className="flex flex-row items-center bg-transparent h-[300px]">
+								<Map />
+							</View>
+						</>
+						<Text className="text-xl font-JakartaBold mt-5 mb-3">
+							Recent Rides
+						</Text>
 					</>
 				)}
 			/>
